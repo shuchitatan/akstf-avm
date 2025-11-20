@@ -28,10 +28,10 @@ Modular Azure Platform Structure
 | Module | Resources |
 |--------|-----------|
 | **0-bootstrap** | Terraform state storage (one-time) |
-| **1-network** |  VNet, Subnets, DNS, Identities |
-| **2-aks** |  AKS Cluster, ACR, Monitoring |
-| **3-postgresql** | PostgreSQL Flexible Server, Databases |
-| **4-subscription-vending** | Subscriptions, Landing Zones, RBAC |
+| **1-subscription-vending** | Subscriptions, Landing Zones, RBAC |
+| **2-network** |  VNet, Subnets, DNS, Identities |
+| **3-aks** |  AKS Cluster, ACR, Monitoring |
+| **4-postgresql** | PostgreSQL Flexible Server, Databases |
 
 ## Deployment Order
 
@@ -42,33 +42,33 @@ terraform init
 terraform apply -var="environment=dev"
 ```
 
-### Step 2: Network (Network Team)
+### Step 2: Subscription Vending (Platform Team)
+```bash
+cd 4-subscription-vending
+terraform init
+terraform apply -var-file=terraform.tfvars
+```
+### Step 3: Network 
 ```bash
 cd 1-network
 terraform init -backend-config=environments/dev/backend.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
-### Step 3: AKS (Platform Team)
+### Step 4: AKS 
 ```bash
 cd 2-aks
 terraform init -backend-config=environments/dev/backend.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
-### Step 4: PostgreSQL (Data Team)
+### Step 5: PostgreSQL 
 ```bash
 cd 3-postgresql
 terraform init -backend-config=environments/dev/backend.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
-### Optional: Subscription Vending (Platform Team)
-```bash
-cd 4-subscription-vending
-terraform init
-terraform apply -var-file=terraform.tfvars
-```
 
 ## Why Azure Verified Modules (AVM)?
 
