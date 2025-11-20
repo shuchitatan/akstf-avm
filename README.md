@@ -23,15 +23,15 @@ Modular Azure Platform Structure
     └─ Creates: Subscriptions, VNets, RBAC, Budgets (AVM)
 ```
 
-## Team Responsibilities
+##  Responsibilities
 
-| Module | Team | Resources |
-|--------|------|-----------|
-| **0-bootstrap** | DevOps | Terraform state storage (one-time) |
-| **1-network** | Network | VNet, Subnets, DNS, Identities |
-| **2-aks** | Platform | AKS Cluster, ACR, Monitoring |
-| **3-postgresql** | Data | PostgreSQL Flexible Server, Databases |
-| **4-subscription-vending** | Platform | Subscriptions, Landing Zones, RBAC |
+| Module | Resources |
+|--------|-----------|
+| **0-bootstrap** | Terraform state storage (one-time) |
+| **1-network** |  VNet, Subnets, DNS, Identities |
+| **2-aks** |  AKS Cluster, ACR, Monitoring |
+| **3-postgresql** | PostgreSQL Flexible Server, Databases |
+| **4-subscription-vending** | Subscriptions, Landing Zones, RBAC |
 
 ## Deployment Order
 
