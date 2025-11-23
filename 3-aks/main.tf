@@ -62,14 +62,14 @@ module "aks_cluster" {
   node_pools               = var.node_pools
 
   # Private cluster with Azure AD
-  private_dns_zone_id         = data.terraform_remote_state.network.outputs.network_config.private_dns_zone_aks_id
+  private_dns_zone_id         = var.private_cluster_enabled ? data.terraform_remote_state.network.outputs.network_config.private_dns_zone_aks_id : null
   private_dns_zone_id_enabled = var.private_cluster_enabled
   rbac_aad_tenant_id          = data.azurerm_client_config.current.tenant_id
   rbac_aad_azure_rbac_enabled = true
 
-  # Let the module create and manage its own identity
+  # Use system-assigned identity for public cluster, user-assigned for private
   managed_identities = {
-    system_assigned = false
+    system_assigned = !var.private_cluster_enabled
   }
 
   # Optional: Container Registry
