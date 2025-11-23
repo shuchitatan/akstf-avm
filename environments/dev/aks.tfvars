@@ -19,7 +19,7 @@ network_policy     = "cilium"
 pod_cidr             = "10.244.0.0/16"
 service_cidr         = "10.245.0.0/16"
 dns_service_ip       = "10.245.0.10"
-private_cluster_enabled = true
+private_cluster_enabled = false
 
 # Default Node Pool
 vm_size = "Standard_D4d_v5"
@@ -32,15 +32,15 @@ node_pools = {
     vm_size   = "Standard_D4d_v5"
     min_count = 1
     max_count = 3
-  },
+  }#,
   
-  compute = {
+/*   compute = {
     name      = "compute"
     orchestrator_version = "1.31"
     vm_size   = "Standard_F4s_v2"
     min_count = 1
-    max_count = 5
-  }
+    max_count = 2
+  } */
 }
 
 # Container Registry

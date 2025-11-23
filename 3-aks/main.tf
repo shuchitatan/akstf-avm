@@ -84,6 +84,16 @@ module "aks_cluster" {
 }
 
 # =====================================================
+# RBAC - Assign Azure Kubernetes Service RBAC Admin to user
+# =====================================================
+
+resource "azurerm_role_assignment" "aks_rbac_admin" {
+  scope                = module.aks_cluster.resource_id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# =====================================================
 # Kubernetes Provider Configuration
 # =====================================================
 
