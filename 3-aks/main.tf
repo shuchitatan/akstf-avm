@@ -101,14 +101,27 @@ data "azurerm_kubernetes_cluster" "credentials" {
   name                = "aks-${var.name}"
   resource_group_name = azurerm_resource_group.aks.name
 
-  depends_on = [module.aks_cluster]
+  depends_on = [module.aks_cluster, azurerm_role_assignment.aks_rbac_admin]
 }
 
 provider "kubernetes" {
   host                   = data.azurerm_kubernetes_cluster.credentials.kube_config[0].host
-  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_certificate)
-  client_key             = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_key)
   cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].cluster_ca_certificate)
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "az"
+    args = [
+      "aks",
+      "get-credentials",
+      "--resource-group",
+      azurerm_resource_group.aks.name,
+      "--name",
+      "aks-${var.name}",
+      "--format",
+      "exec",
+    ]
+  }
 }
 
 # =====================================================
