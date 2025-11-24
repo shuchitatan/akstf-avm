@@ -96,37 +96,43 @@ resource "azurerm_role_assignment" "aks_rbac_admin" {
 # =====================================================
 # Kubernetes Provider Configuration
 # =====================================================
+# Note: Namespace creation commented out due to Azure AD auth requirements
+# Create namespaces manually after cluster deployment using kubectl
 
-data "azurerm_kubernetes_cluster" "credentials" {
-  name                = "aks-${var.name}"
-  resource_group_name = azurerm_resource_group.aks.name
+# data "azurerm_kubernetes_cluster" "credentials" {
+#   name                = "aks-${var.name}"
+#   resource_group_name = azurerm_resource_group.aks.name
 
-  depends_on = [module.aks_cluster, azurerm_role_assignment.aks_rbac_admin]
-}
+#   depends_on = [module.aks_cluster, azurerm_role_assignment.aks_rbac_admin]
+# }
 
-provider "kubernetes" {
-  host                   = data.azurerm_kubernetes_cluster.credentials.kube_config[0].host
-  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_certificate)
-  client_key             = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_key)
-  cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].cluster_ca_certificate)
-}
+# provider "kubernetes" {
+#   host                   = data.azurerm_kubernetes_cluster.credentials.kube_config[0].host
+#   client_certificate     = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_certificate)
+#   client_key             = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].client_key)
+#   cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.credentials.kube_config[0].cluster_ca_certificate)
+# }
 
 # =====================================================
 # Kubernetes Namespaces
 # =====================================================
+# Commented out - create manually using kubectl after cluster deployment:
+# az aks get-credentials --resource-group <rg> --name <cluster>
+# kubectl create namespace development
+# kubectl create namespace staging
 
-resource "kubernetes_namespace" "namespaces" {
-  for_each = { for ns in var.namespaces : ns.name => ns }
+# resource "kubernetes_namespace" "namespaces" {
+#   for_each = { for ns in var.namespaces : ns.name => ns }
 
-  metadata {
-    name   = each.value.name
-    labels = merge(
-      each.value.labels,
-      {
-        "managed-by" = "terraform"
-      }
-    )
-  }
+#   metadata {
+#     name   = each.value.name
+#     labels = merge(
+#       each.value.labels,
+#       {
+#         "managed-by" = "terraform"
+#       }
+#     )
+#   }
 
-  depends_on = [module.aks_cluster]
-}
+#   depends_on = [module.aks_cluster]
+# }
