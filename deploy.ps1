@@ -32,8 +32,8 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
 $EnvDir = Join-Path $ScriptDir "environments\dev"
 
 # AKS configuration variables
-$ResourceGroup = "21rg-aks-dev"
-$ClusterName = "aks-2111-dev-australiaeast"
+$ResourceGroup = "rg-aks01-baseline-dev"
+$ClusterName = "aks01-baseline-dev"
 
 # =====================================================
 # 1. Deploy Network Infrastructure
@@ -80,11 +80,18 @@ $ClusterName = "aks-2111-dev-australiaeast"
  terraform apply aks.tfplan
  if ($LASTEXITCODE -ne 0) { throw "AKS apply failed" }
 
-# Write-Step "Enabling Istio AKS service mesh..."
-# az aks mesh enable --resource-group $ResourceGroup --name $ClusterName
-# if ($LASTEXITCODE -ne 0) { throw "AKS mesh enable failed" }
+# az aks get-credentials --resource-group $ResourceGroup --name $ClusterName
+# kubectl create namespace development
+# kubectl create namespace staging
+Write-Step "Disable Cluster auto scaler"
+az aks update --resource-group $ResourceGroup --name $ClusterName --disable-cluster-autoscaler
+ if ($LASTEXITCODE -ne 0) { throw "AKS disable auto scaler failed" }
 
-# Write-Step "Enabling Karpenter on AKS cluster..."
+ Write-Step "Enabling Istio AKS service mesh..."
+ az aks mesh enable --resource-group $ResourceGroup --name $ClusterName
+ if ($LASTEXITCODE -ne 0) { throw "AKS mesh enable failed" }
+
+ Write-Step "Enabling Karpenter on AKS cluster..."
 # az extension add --name aks-preview
 # if ($LASTEXITCODE -ne 0) { throw "Failed to add aks-preview extension" }
 
