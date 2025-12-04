@@ -31,12 +31,24 @@ Using the **AVM Storage Account Module** (`Azure/avm-res-storage-storageaccount/
 
 ```bash
 cd 0-bootstrap
+```
 
+**Bash (Linux/macOS/Git Bash):**
+```bash
 # For development
 export TF_VAR_environment="dev"
 
 # For production
 export TF_VAR_environment="prod"
+```
+
+**PowerShell (Windows):**
+```powershell
+# For development
+$env:TF_VAR_environment = "dev"
+
+# For production
+$env:TF_VAR_environment = "prod"
 ```
 
 ### Step 2: Initialize and Apply
@@ -130,14 +142,19 @@ This will delete:
 
 ### Issue: Storage account name already exists
 
-Storage account names must be globally unique. If the name is taken:
+Storage account names must be globally unique. If the name is taken, change the environment variable:
 
+**Bash:**
 ```bash
-# Change the environment variable
 export TF_VAR_environment="dev2"
-
-# Or customize in terraform.tfvars
 ```
+
+**PowerShell:**
+```powershell
+$env:TF_VAR_environment = "dev2"
+```
+
+Or customize in terraform.tfvars.
 
 ### Issue: Permission denied
 
