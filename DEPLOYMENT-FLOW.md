@@ -20,9 +20,18 @@ flowchart TD
         B1 --> B2 --> B3 --> B4 --> B5
     end
     
-    Bootstrap --> |"Outputs:<br/>storage_account_name"| Network
+    Bootstrap --> |"Outputs:<br/>storage_account_name"| SubVending
     
-    subgraph Network["1-network"]
+    subgraph SubVending["1-subscription-vending (Optional)"]
+        SV1[Create new subscription<br/>OR use existing]
+        SV2[Apply governance<br/>Management Groups, RBAC]
+        SV3[Configure budgets]
+        SV1 --> SV2 --> SV3
+    end
+    
+    SubVending --> |"Outputs:<br/>subscription_id"| Network
+    
+    subgraph Network["2-network"]
         N1[Configure remote backend<br/>backend.tfvars]
         N2[Assign Storage Blob<br/>Data Contributor role]
         N3[terraform init with<br/>Azure AD auth]
@@ -35,7 +44,7 @@ flowchart TD
     
     Network --> |"State: network.tfstate<br/>Outputs: network_config"| AKS
     
-    subgraph AKS["2-aks"]
+    subgraph AKS["3-aks"]
         A1[Read network state<br/>via remote_state]
         A2[Enable subscription features<br/>EncryptionAtHost]
         A3[Create Resource Group<br/>rg-aks-dev]
@@ -48,7 +57,16 @@ flowchart TD
         A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8 --> A9
     end
     
-    AKS --> Complete([Deployment Complete])
+    AKS --> |"State: aks.tfstate"| PostgreSQL
+    
+    subgraph PostgreSQL["4-postgresql"]
+        P1[Read network state]
+        P2[Create PostgreSQL<br/>Flexible Server]
+        P3[Configure Private Endpoint]
+        P1 --> P2 --> P3
+    end
+    
+    PostgreSQL --> Complete([Deployment Complete])
     
     Complete --> Access
     
@@ -58,8 +76,10 @@ flowchart TD
     end
     
     style Bootstrap fill:#e1f5ff
+    style SubVending fill:#f3e5f5
     style Network fill:#fff4e1
     style AKS fill:#e8f5e9
+    style PostgreSQL fill:#f8bbd0
     style Access fill:#f3e5f5
 ```
 
@@ -70,10 +90,22 @@ flowchart TD
 ### Phase 1: Bootstrap (0-bootstrap)
 **Purpose**: Create remote state storage for all modules
 
+**Bash:**
 ```bash
 cd 0-bootstrap
-terraform init                    # Local backend
-terraform apply -var environment=dev
+export TF_VAR_subscription_id="00000000-0000-0000-0000-000000000000"
+export TF_VAR_environment="dev"
+terraform init
+terraform apply
+```
+
+**PowerShell:**
+```powershell
+cd 0-bootstrap
+$env:TF_VAR_subscription_id = "00000000-0000-0000-0000-000000000000"
+$env:TF_VAR_environment = "dev"
+terraform init
+terraform apply
 ```
 
 **Creates**:
@@ -87,11 +119,36 @@ terraform apply -var environment=dev
 
 ---
 
-### Phase 2: Network Foundation (1-network)
+### Phase 2: Subscription Vending (1-subscription-vending) - OPTIONAL
+**Purpose**: Create or configure Azure subscriptions with governance
+
+> **Skip this phase** if you already have a subscription to use.
+
+```bash
+cd ../1-subscription-vending
+terraform init
+terraform apply -var-file="terraform.tfvars"
+```
+
+**Creates** (if creating new subscription):
+- New Azure Subscription
+- Management Group association
+- Role assignments
+- Budgets
+
+**Or Configures** (if using existing subscription):
+- Apply governance to existing subscription
+
+**Outputs**:
+- `subscription_id` → Can be used by subsequent modules
+
+---
+
+### Phase 3: Network Foundation (2-network)
 **Purpose**: Create network infrastructure and prerequisites
 
 ```bash
-cd ../1-network
+cd ../2-network
 
 # 1. Create backend config
 cat > ../environments/dev/backend.tfvars <<EOF
@@ -136,18 +193,18 @@ terraform apply -var-file="../environments/dev/network.tfvars"
 
 ---
 
-### Phase 3: AKS Deployment (2-aks)
+### Phase 4: AKS Deployment (3-aks)
 **Purpose**: Deploy production AKS cluster using Azure Verified Modules
 
 ```bash
-cd ../2-aks
+cd ../3-aks
 
 # 1. Enable required features
 az feature register --namespace Microsoft.Compute --name EncryptionAtHost
 az provider register -n Microsoft.Compute
 
-# 2. Initialize (shares same backend as network)
-terraform init
+# 2. Initialize with remote backend
+terraform init -backend-config="../environments/dev/aks-backend.tfvars"
 
 # 3. Deploy AKS
 terraform apply -var-file="../environments/dev/aks.tfvars"
@@ -197,10 +254,10 @@ flowchart LR
         C1 --> S3
     end
     
-    N[1-network] -->|writes| S1
-    A[2-aks] -->|reads| S1
+    N[2-network] -->|writes| S1
+    A[3-aks] -->|reads| S1
     A -->|writes| S2
-    P[3-postgresql] -->|reads| S1
+    P[4-postgresql] -->|reads| S1
     P -->|reads| S2
     P -->|writes| S3
     
@@ -244,27 +301,41 @@ sequenceDiagram
 aksavm/
 ├── 0-bootstrap/
 │   ├── main.tf              # Bootstrap resources
-│   ├── variables.tf         # Environment variable
+│   ├── variables.tf         # subscription_id, environment
 │   └── terraform.tfstate    # LOCAL state only
 │
-├── 1-network/
+├── 1-subscription-vending/  # OPTIONAL
+│   ├── main.tf              # Subscription vending module
+│   ├── variables.tf         # Subscription configuration
+│   └── outputs.tf           # subscription_id output
+│
+├── 2-network/
 │   ├── main.tf              # Network resources + AVM module
 │   ├── variables.tf         # Network configuration
 │   ├── versions.tf          # Backend: azurerm (remote)
 │   └── outputs.tf           # network_config output
 │
-├── 2-aks/
+├── 3-aks/
 │   ├── main.tf              # AKS + remote state data source
 │   ├── variables.tf         # AKS configuration
 │   ├── versions.tf          # Backend: azurerm (remote)
 │   ├── locals.tf            # Azure client config
 │   └── outputs.tf           # Cluster outputs
 │
+├── 4-postgresql/
+│   ├── main.tf              # PostgreSQL Flexible Server
+│   ├── variables.tf         # Database configuration
+│   ├── versions.tf          # Backend: azurerm (remote)
+│   └── outputs.tf           # Connection outputs
+│
 └── environments/
     └── dev/
-        ├── backend.tfvars   # Shared backend config
-        ├── network.tfvars   # Network variables
-        └── aks.tfvars       # AKS variables
+        ├── backend.tfvars       # Backend config for 2-network
+        ├── aks-backend.tfvars   # Backend config for 3-aks
+        ├── postgresql-backend.tfvars  # Backend config for 4-postgresql
+        ├── network.tfvars       # Network variables
+        ├── aks.tfvars           # AKS variables
+        └── postgresql.tfvars    # PostgreSQL variables
 ```
 
 ---
@@ -273,17 +344,21 @@ aksavm/
 
 ```mermaid
 graph TD
-    B[0-bootstrap<br/>Storage Account] --> N
-    N[1-network<br/>VNet + DNS + Identity] --> A
-    A[2-aks<br/>AKS Cluster] --> P
-    P[3-postgresql<br/>Database]
+    B[0-bootstrap<br/>Storage Account] --> SV
+    SV[1-subscription-vending<br/>Optional] --> N
+    B --> N
+    N[2-network<br/>VNet + DNS + Identity] --> A
+    A[3-aks<br/>AKS Cluster] --> P
+    P[4-postgresql<br/>Database]
     
     B -.->|storage_account_name| N
+    SV -.->|subscription_id| N
     N -.->|network_config| A
     N -.->|network_config| P
     A -.->|cluster info| P
     
     style B fill:#bbdefb
+    style SV fill:#f3e5f5
     style N fill:#fff9c4
     style A fill:#c8e6c9
     style P fill:#f8bbd0
@@ -345,9 +420,11 @@ flowchart TD
 
 ## Summary
 
-1. **Bootstrap**: Creates shared remote state storage (run once)
-2. **Network**: Creates foundation infrastructure, stores state remotely
-3. **AKS**: Reads network state, deploys cluster
-4. **Access**: Use Azure CLI to get kubeconfig and access cluster
+1. **Bootstrap (0-bootstrap)**: Creates shared remote state storage (run once)
+2. **Subscription Vending (1-subscription-vending)**: Optional - creates/configures subscriptions
+3. **Network (2-network)**: Creates foundation infrastructure, stores state remotely
+4. **AKS (3-aks)**: Reads network state, deploys cluster
+5. **PostgreSQL (4-postgresql)**: Reads network state, deploys database
+6. **Access**: Use Azure CLI to get kubeconfig and access cluster
 
 All modules use Azure AD authentication for state storage (no access keys needed).
