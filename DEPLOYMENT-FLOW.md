@@ -16,7 +16,7 @@ flowchart TD
         B2[Create Resource Group<br/>rg-terraform-state]
         B3[Create Storage Account<br/>sttfstatedev******]
         B4[Create Blob Container<br/>tfstate]
-        B5[Configure Azure AD Auth<br/>Disable key-based auth]
+        B5[Configure Entra ID Auth<br/>with versioning enabled]
         B1 --> B2 --> B3 --> B4 --> B5
     end
     
@@ -47,13 +47,13 @@ flowchart TD
     subgraph AKS["3-aks"]
         A1[Read network state<br/>via remote_state]
         A2[Enable subscription features<br/>EncryptionAtHost]
-        A3[Create Resource Group<br/>rg-aks-dev]
-        A4[Deploy AKS Cluster<br/>v1.31 + Cilium]
+        A3[Create Resource Group<br/>rg-aks01-baseline-dev]
+        A4[Deploy AKS Cluster<br/>v1.31 + Cilium via AVM]
         A5[Configure Private Cluster<br/>with Azure AD RBAC]
-        A6[Create System Node Pool<br/>3-9 nodes, autoscale]
-        A7[Create User Node Pool<br/>1-3 nodes, autoscale]
-        A8[Setup Log Analytics<br/>& Monitoring]
-        A9[Configure Workload Identity<br/>& OIDC]
+        A6[Create Default Node Pool<br/>Standard_D4d_v5]
+        A7[Optional: User Node Pools<br/>via node_pools variable]
+        A8[Create ACR with<br/>Private Endpoint]
+        A9[Assign RBAC Cluster Admin]
         A1 --> A2 --> A3 --> A4 --> A5 --> A6 --> A7 --> A8 --> A9
     end
     
@@ -62,7 +62,7 @@ flowchart TD
     subgraph PostgreSQL["4-postgresql"]
         P1[Read network state]
         P2[Create PostgreSQL<br/>Flexible Server]
-        P3[Configure Private Endpoint]
+        P3[Configure VNet Integration<br/>& Private DNS Zone]
         P1 --> P2 --> P3
     end
     
@@ -111,8 +111,11 @@ terraform apply
 **Creates**:
 - Resource Group: `rg-terraform-state`
 - Storage Account: `sttfstatedevXXXXXX` (random suffix)
+  - GRS replication
+  - Blob versioning enabled
+  - 30-day delete retention
 - Container: `tfstate`
-- Azure AD authentication enabled (key-based auth disabled)
+- Azure AD (Entra ID) authentication configured via `storage_use_azuread = true` in provider
 
 **Outputs**:
 - `storage_account_name` → Used by all subsequent modules
@@ -187,9 +190,10 @@ terraform apply -var-file="../environments/dev/network.tfvars"
 **State File**: `tfstate/network.tfstate`
 
 **Outputs** → `network_config`:
-- VNet ID, Subnet IDs
-- Private DNS Zone IDs
-- Managed Identity ID
+- VNet ID, VNet Name
+- Subnet IDs (aks_system, aks_user, private_endpoints)
+- Private DNS Zone IDs (AKS, ACR)
+- Managed Identity (ID, Principal ID, Client ID)
 
 ---
 
@@ -214,28 +218,64 @@ terraform apply -var-file="../environments/dev/aks.tfvars"
 - `network.tfstate` → Gets VNet, subnets, DNS zones, identity
 
 **Creates**:
-- Resource Group: `rg-aks-dev`
-- AKS Cluster: `aks-aks-dev-australiaeast`
+- Resource Group: `rg-aks01-baseline-dev`
+- AKS Cluster: `aks01-baseline-dev`
   - Kubernetes: v1.31
   - Network Policy: Cilium
   - CNI: Azure Overlay (pods: 10.244.0.0/16)
   - Service CIDR: 10.245.0.0/16
+  - Private Cluster: enabled
 - Node Pools:
-  - System: 3-9 nodes, Standard_D4d_v5
-  - User: 1-3 nodes, Standard_D4d_v5
-- User-Assigned Identity: `uami-aks`
-- Log Analytics Workspace
-- Diagnostic Settings
+  - Default: Standard_D4d_v5 (autoscaling via AVM module)
+  - User: Optional, configured via `node_pools` variable
+- Azure Container Registry: `stacr01baselinedev` (with private endpoint)
 - Role Assignments:
-  - Network Contributor on network RG
-  - Private DNS Zone Contributor
+  - Azure Kubernetes Service RBAC Cluster Admin
 
 **State File**: `tfstate/aks.tfstate` (separate from network)
 
 **Outputs**:
-- `cluster_id`, `cluster_fqdn`
+- `cluster_id`, `cluster_name`, `cluster_fqdn`, `cluster_private_fqdn`
 - `kube_config_raw`
 - `oidc_issuer_url`
+- `cluster_identity`, `kubelet_identity`
+- `node_resource_group`
+
+---
+
+### Phase 5: PostgreSQL Deployment (4-postgresql)
+**Purpose**: Deploy PostgreSQL Flexible Server with VNet integration
+
+```bash
+cd ../4-postgresql
+
+# 1. Initialize with remote backend
+terraform init -backend-config="../environments/dev/postgresql-backend.tfvars"
+
+# 2. Deploy PostgreSQL
+terraform apply -var-file="../environments/dev/postgresql.tfvars"
+```
+
+**Reads Remote State**:
+- `network.tfstate` → Gets VNet ID for Private DNS Zone linking
+
+**Creates**:
+- Resource Group (configurable via variable)
+- PostgreSQL Flexible Server (AVM module)
+  - Configurable SKU, storage, and version
+  - Azure AD and/or password authentication
+  - Optional high availability
+  - Geo-redundant backup support
+- Private DNS Zone: `privatelink.postgres.database.azure.com` (when using VNet integration)
+- Private DNS Zone VNet Link
+
+**State File**: `tfstate/postgresql.tfstate`
+
+**Outputs**:
+- `postgresql_id`, `postgresql_name`, `postgresql_fqdn`
+- `administrator_login`, `administrator_password` (sensitive)
+- `connection_string` (template)
+- `private_dns_zone_id`
 
 ---
 
@@ -258,7 +298,6 @@ flowchart LR
     A[3-aks] -->|reads| S1
     A -->|writes| S2
     P[4-postgresql] -->|reads| S1
-    P -->|reads| S2
     P -->|writes| S3
     
     style Storage fill:#e3f2fd
@@ -348,14 +387,14 @@ graph TD
     SV[1-subscription-vending<br/>Optional] --> N
     B --> N
     N[2-network<br/>VNet + DNS + Identity] --> A
-    A[3-aks<br/>AKS Cluster] --> P
+    N --> P
+    A[3-aks<br/>AKS Cluster + ACR]
     P[4-postgresql<br/>Database]
     
     B -.->|storage_account_name| N
     SV -.->|subscription_id| N
     N -.->|network_config| A
     N -.->|network_config| P
-    A -.->|cluster info| P
     
     style B fill:#bbdefb
     style SV fill:#f3e5f5
@@ -423,8 +462,8 @@ flowchart TD
 1. **Bootstrap (0-bootstrap)**: Creates shared remote state storage (run once)
 2. **Subscription Vending (1-subscription-vending)**: Optional - creates/configures subscriptions
 3. **Network (2-network)**: Creates foundation infrastructure, stores state remotely
-4. **AKS (3-aks)**: Reads network state, deploys cluster
-5. **PostgreSQL (4-postgresql)**: Reads network state, deploys database
+4. **AKS (3-aks)**: Reads network state, deploys AKS cluster and optional ACR
+5. **PostgreSQL (4-postgresql)**: Reads network state, deploys PostgreSQL Flexible Server with VNet integration
 6. **Access**: Use Azure CLI to get kubeconfig and access cluster
 
 All modules use Azure AD authentication for state storage (no access keys needed).
