@@ -228,7 +228,7 @@ terraform apply -var-file="../environments/dev/aks.tfvars"
 - Node Pools:
   - Default: Standard_D4d_v5 (autoscaling via AVM module)
   - User: Optional, configured via `node_pools` variable
-- Azure Container Registry: `stacr01baselinedev` (with private endpoint)
+- Azure Container Registry: `acr01baselinedev` (with private endpoint)
 - Role Assignments:
   - Azure Kubernetes Service RBAC Cluster Admin
 
