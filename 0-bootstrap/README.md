@@ -4,7 +4,7 @@ Creates the Azure Storage backend for Terraform remote state management using **
 
 ## Purpose
 
-This module is run **ONCE** to set up the infrastructure needed for storing Terraform state files remotely. All subsequent modules (foundation, AKS) will use this storage backend.
+This module is run **ONCE** to set up the infrastructure needed for storing Terraform state files remotely. All subsequent modules (network, AKS, PostgreSQL) will use this storage backend.
 
 ## What It Creates
 
@@ -27,16 +27,34 @@ Using the **AVM Storage Account Module** (`Azure/avm-res-storage-storageaccount/
 
 ## Deployment
 
-### Step 1: Set Environment
+### Step 1: Set Environment Variables
 
 ```bash
 cd 0-bootstrap
+```
+
+**Bash (Linux/macOS/Git Bash):**
+```bash
+# Set your Azure Subscription ID
+export TF_VAR_subscription_id="00000000-0000-0000-0000-000000000000"
 
 # For development
 export TF_VAR_environment="dev"
 
 # For production
 export TF_VAR_environment="prod"
+```
+
+**PowerShell (Windows):**
+```powershell
+# Set your Azure Subscription ID
+$env:TF_VAR_subscription_id = "00000000-0000-0000-0000-000000000000"
+
+# For development
+$env:TF_VAR_environment = "dev"
+
+# For production
+$env:TF_VAR_environment = "prod"
 ```
 
 ### Step 2: Initialize and Apply
@@ -56,7 +74,7 @@ terraform apply
 
 ```bash
 # Get backend configuration for other modules
-terraform output backend_config_file
+terraform output backend_config
 
 # Example output:
 # resource_group_name  = "rg-terraform-state"
@@ -66,34 +84,45 @@ terraform output backend_config_file
 
 ## Usage in Other Modules
 
-After bootstrap is complete, use the outputs in foundation and AKS modules:
+After bootstrap is complete, use the outputs to update the backend configuration files in `environments/dev/`:
 
-### foundation/environments/dev/backend.tfvars
+### environments/dev/backend.tfvars (for 2-network)
 ```hcl
 resource_group_name  = "rg-terraform-state"
-storage_account_name = "sttfstatedev"
+storage_account_name = "sttfstatedevXXXXXX"
 container_name       = "tfstate"
-key                  = "foundation/dev/terraform.tfstate"
+key                  = "network.tfstate"
+use_azuread_auth     = true
 ```
 
-### 2-aks/environments/dev/backend.tfvars
+### environments/dev/aks-backend.tfvars (for 3-aks)
 ```hcl
 resource_group_name  = "rg-terraform-state"
-storage_account_name = "sttfstatedev"
+storage_account_name = "sttfstatedevXXXXXX"
 container_name       = "tfstate"
-key                  = "aks/dev/terraform.tfstate"
+key                  = "aks.tfstate"
+use_azuread_auth     = true
+```
+
+### environments/dev/postgresql-backend.tfvars (for 4-postgresql)
+```hcl
+resource_group_name  = "rg-terraform-state"
+storage_account_name = "sttfstatedevXXXXXX"
+container_name       = "tfstate"
+key                  = "postgresql.tfstate"
+use_azuread_auth     = true
 ```
 
 ## State Storage Strategy
 
 ```
-Storage Account: sttfstatedev
+Storage Account: sttfstatedevXXXXXX
 └── Container: tfstate
-    ├── bootstrap/terraform.tfstate        (local - not here)
-    ├── foundation/dev/terraform.tfstate   (remote)
-    ├── foundation/prod/terraform.tfstate  (remote)
-    ├── aks/dev/terraform.tfstate          (remote)
-    └── aks/prod/terraform.tfstate         (remote)
+    ├── network.tfstate      (2-network module)
+    ├── aks.tfstate          (3-aks module)
+    └── postgresql.tfstate   (4-postgresql module)
+
+Note: 0-bootstrap uses local state, 1-subscription-vending doesn't use remote state.
 ```
 
 ## Security Features
@@ -130,14 +159,19 @@ This will delete:
 
 ### Issue: Storage account name already exists
 
-Storage account names must be globally unique. If the name is taken:
+Storage account names must be globally unique. If the name is taken, change the environment variable:
 
+**Bash:**
 ```bash
-# Change the environment variable
 export TF_VAR_environment="dev2"
-
-# Or customize in terraform.tfvars
 ```
+
+**PowerShell:**
+```powershell
+$env:TF_VAR_environment = "dev2"
+```
+
+Or customize in terraform.tfvars.
 
 ### Issue: Permission denied
 
@@ -149,6 +183,6 @@ Ensure you have:
 ## Next Steps
 
 After bootstrap is complete:
-1. ✅ Note the storage account name
-2. ✅ Create backend.tfvars files for foundation and AKS modules
-3. ✅ Proceed to [1-foundation](../1-foundation/README.md)
+1. ✅ Note the storage account name from outputs
+2. ✅ Update `environments/dev/backend.tfvars` files with the storage account name
+3. ✅ Proceed to [1-subscription-vending](../1-subscription-vending/README.md) or [2-network](../2-network/README.md)
