@@ -466,4 +466,4 @@ flowchart TD
 5. **PostgreSQL (4-postgresql)**: Reads network state, deploys PostgreSQL Flexible Server with VNet integration
 6. **Access**: Use Azure CLI to get kubeconfig and access cluster
 
-All modules use Azure AD authentication for state storage (no access keys needed).
+All modules use Entra ID authentication for state storage (no access keys needed).
