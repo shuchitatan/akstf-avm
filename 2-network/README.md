@@ -48,13 +48,28 @@ Creates core networking components required for AKS deployment using the **AVM V
 
 ## Deployment
 
-### Development Environment
+### Step 1: Create Configuration Files
 
 ```bash
-cd 1-network
+cd environments/dev
+
+# Copy the example files
+cp network-backend.tfvars.example network-backend.tfvars
+cp network.tfvars.example network.tfvars
+```
+
+Edit both files with your values:
+- `network-backend.tfvars`: Set `storage_account_name` from bootstrap output
+- `network.tfvars`: Set `subscription_id` and customize network settings
+
+### Step 2: Deploy Development Environment
+
+**Bash (Linux/macOS/Git Bash):**
+```bash
+cd 2-network
 
 # Initialize with remote backend
-terraform init -backend-config="../environments/dev/backend.tfvars"
+terraform init -backend-config="../environments/dev/network-backend.tfvars"
 
 # Plan
 terraform plan -var-file="../environments/dev/network.tfvars"
@@ -63,19 +78,33 @@ terraform plan -var-file="../environments/dev/network.tfvars"
 terraform apply -var-file="../environments/dev/network.tfvars"
 ```
 
-### Production Environment
-
-```bash
-cd 1-network
+**PowerShell (Windows):**
+```powershell
+cd 2-network
 
 # Initialize with remote backend
-terraform init -backend-config=environments/prod/backend.tfvars
+terraform init -backend-config="..\environments\dev\network-backend.tfvars"
 
 # Plan
-terraform plan -var-file=environments/prod/terraform.tfvars
+terraform plan -var-file="..\environments\dev\network.tfvars"
 
 # Apply
-terraform apply -var-file=environments/prod/terraform.tfvars
+terraform apply -var-file="..\environments\dev\network.tfvars"
+```
+
+### Step 3: Deploy Production Environment
+
+```bash
+cd 2-network
+
+# Initialize with remote backend
+terraform init -backend-config="../environments/prod/network-backend.tfvars"
+
+# Plan
+terraform plan -var-file="../environments/prod/network.tfvars"
+
+# Apply
+terraform apply -var-file="../environments/prod/network.tfvars"
 ```
 
 ## Outputs
@@ -210,7 +239,7 @@ az role assignment list \
 After network is deployed:
 1. ✅ Save outputs for AKS team
 2. ✅ Verify DNS zones are linked
-3. ✅ Proceed to [2-aks](../2-aks/README.md)
+3. ✅ Proceed to [3-aks](../3-aks/README.md)
 
 ## Support
 

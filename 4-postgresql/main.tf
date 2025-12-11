@@ -15,7 +15,7 @@ data "terraform_remote_state" "network" {
 }
 
 provider "azurerm" {
-  subscription_id = "1ba93e37-9d55-40ca-b240-0435b633fc72"
+  subscription_id = var.subscription_id
   
   # Use Azure AD authentication for storage accounts
   storage_use_azuread = true

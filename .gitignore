@@ -11,10 +11,9 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Sensitive variable files
-# *.tfvars
-# *.tfvars.json
-# !example.tfvars
+# Sensitive variable files - use .tfvars.example pattern
+*.tfvars
+!*.tfvars.example
 
 # Terraform plans
 *.tfplan

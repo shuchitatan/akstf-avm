@@ -1,0 +1,15 @@
+# =====================================================
+# Bootstrap Module Configuration
+# =====================================================
+# Copy this file to bootstrap.tfvars and update values:
+#   cp bootstrap.tfvars.example bootstrap.tfvars
+# =====================================================
+
+# Azure Subscription ID (required)
+subscription_id = "<YOUR_SUBSCRIPTION_ID>"
+
+# Environment name (dev or prod)
+environment = "dev"
+
+# Azure region (optional - defaults to australiaeast)
+# location = "australiaeast"

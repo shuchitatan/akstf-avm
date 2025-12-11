@@ -2,6 +2,11 @@
 # Common Variables
 # =====================================================
 
+variable "subscription_id" {
+  description = "Azure Subscription ID"
+  type        = string
+}
+
 variable "environment" {
   description = "Environment name (dev, prod)"
   type        = string
