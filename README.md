@@ -58,7 +58,7 @@ terraform apply -var-file=environments/dev/network.tfvars
 ### Step 4: AKS 
 ```bash
 cd 3-aks
-terraform init -backend-config=environments/dev/backend.tfvars
+terraform init -backend-config=environments/dev/aks-backend.tfvars
 terraform apply -var-file=environments/dev/aks.tfvars
 ```
 
