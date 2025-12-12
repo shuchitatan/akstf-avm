@@ -1,0 +1,15 @@
+# =====================================================
+# Backend Configuration for 4-postgresql
+# =====================================================
+# Copy this file to postgresql-backend.tfvars and update values:
+#   cp postgresql-backend.tfvars.example postgresql-backend.tfvars
+#
+# Get storage_account_name from bootstrap output:
+#   cd ../0-bootstrap && terraform output storage_account_name
+# =====================================================
+
+resource_group_name  = "rg-terraform-state"
+storage_account_name = "<YOUR_STORAGE_ACCOUNT_FROM_BOOTSTRAP>"
+container_name       = "tfstate"
+key                  = "postgresql.tfstate"
+use_azuread_auth     = true

@@ -1,0 +1,15 @@
+# =====================================================
+# Backend Configuration for 2-network
+# =====================================================
+# Copy this file to network-backend.tfvars and update values:
+#   cp network-backend.tfvars.example network-backend.tfvars
+#
+# Get storage_account_name from bootstrap output:
+#   cd ../0-bootstrap && terraform output storage_account_name
+# =====================================================
+
+resource_group_name  = "rg-terraform-state"
+storage_account_name = "<YOUR_STORAGE_ACCOUNT_FROM_BOOTSTRAP>"
+container_name       = "tfstate"
+key                  = "network.tfstate"
+use_azuread_auth     = true

@@ -20,27 +20,57 @@ Deploy a production-ready PostgreSQL database with minimal code:
 
 - Terraform >= 1.9
 - Azure CLI authenticated
-- Foundation network deployed (1-network)
+- Foundation network deployed (2-network)
 - Storage Blob Data Contributor role assigned
 
-### Deploy Development
+### Step 1: Create Configuration Files
 
 ```bash
-# Initialize
-terraform init
+cd environments/dev
+
+# Copy the example files
+cp postgresql-backend.tfvars.example postgresql-backend.tfvars
+cp postgresql.tfvars.example postgresql.tfvars
+```
+
+Edit both files with your values:
+- `postgresql-backend.tfvars`: Set `storage_account_name` from bootstrap output
+- `postgresql.tfvars`: Set `subscription_id`, `backend_storage_account_name`, and customize PostgreSQL settings
+
+### Step 2: Deploy Development
+
+**Bash (Linux/macOS/Git Bash):**
+```bash
+cd 4-postgresql
+
+# Initialize with remote backend
+terraform init -backend-config="../environments/dev/postgresql-backend.tfvars"
 
 # Deploy
 terraform apply -var-file="../environments/dev/postgresql.tfvars"
 ```
 
-### Deploy Production
+**PowerShell (Windows):**
+```powershell
+cd 4-postgresql
+
+# Initialize with remote backend
+terraform init -backend-config="..\environments\dev\postgresql-backend.tfvars"
+
+# Deploy
+terraform apply -var-file="..\environments\dev\postgresql.tfvars"
+```
+
+### Step 3: Deploy Production
 
 ```bash
-# Initialize
-terraform init
+cd 4-postgresql
+
+# Initialize with remote backend
+terraform init -backend-config="../environments/prod/postgresql-backend.tfvars"
 
 # Deploy with HA
-terraform apply -var-file=environments/prod/postgresql.tfvars
+terraform apply -var-file="../environments/prod/postgresql.tfvars"
 ```
 
 ## What's Included

@@ -1,6 +1,12 @@
 # =====================================================
 # Network Module Configuration
 # =====================================================
+# Copy this file to network.tfvars and update values:
+#   cp network.tfvars.example network.tfvars
+# =====================================================
+
+# Azure Subscription ID (required)
+subscription_id = "<YOUR_SUBSCRIPTION_ID>"
 
 # Azure Region
 location = "australiaeast"

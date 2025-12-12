@@ -1,0 +1,15 @@
+# =====================================================
+# Backend Configuration for 3-aks
+# =====================================================
+# Copy this file to aks-backend.tfvars and update values:
+#   cp aks-backend.tfvars.example aks-backend.tfvars
+#
+# Get storage_account_name from bootstrap output:
+#   cd ../0-bootstrap && terraform output storage_account_name
+# =====================================================
+
+resource_group_name  = "rg-terraform-state"
+storage_account_name = "<YOUR_STORAGE_ACCOUNT_FROM_BOOTSTRAP>"
+container_name       = "tfstate"
+key                  = "aks.tfstate"
+use_azuread_auth     = true

@@ -1,10 +1,19 @@
 # =====================================================
 # PostgreSQL Module Configuration - Development
 # =====================================================
+# Copy this file to postgresql.tfvars and update values:
+#   cp postgresql.tfvars.example postgresql.tfvars
+#
+# Get backend_storage_account_name from bootstrap output:
+#   cd ../0-bootstrap && terraform output storage_account_name
+# =====================================================
+
+# Azure Subscription ID (required)
+subscription_id = "<YOUR_SUBSCRIPTION_ID>"
 
 # Common Configuration
 environment                  = "dev"
-backend_storage_account_name = "sttfstatedevzvjoj9"
+backend_storage_account_name = "<YOUR_STORAGE_ACCOUNT_FROM_BOOTSTRAP>"
 location                     = "australiaeast"
 resource_group_name          = "rg-postgresql-dev"
 

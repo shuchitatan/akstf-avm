@@ -20,26 +20,56 @@ One module call provides enterprise features that would normally require hundred
 
 - Terraform >= 1.9
 - Azure CLI authenticated
-- Foundation network deployed (1-network)
+- Foundation network deployed (2-network)
 
-### Deploy Development
+### Step 1: Create Configuration Files
 
 ```bash
-# Initialize
-terraform init -backend-config="../environments/dev/aks.tfvars"
+cd environments/dev
+
+# Copy the example files
+cp aks-backend.tfvars.example aks-backend.tfvars
+cp aks.tfvars.example aks.tfvars
+```
+
+Edit both files with your values:
+- `aks-backend.tfvars`: Set `storage_account_name` from bootstrap output
+- `aks.tfvars`: Set `subscription_id`, `backend_storage_account_name`, and customize AKS settings
+
+### Step 2: Deploy Development
+
+**Bash (Linux/macOS/Git Bash):**
+```bash
+cd 3-aks
+
+# Initialize with remote backend
+terraform init -backend-config="../environments/dev/aks-backend.tfvars"
 
 # Deploy
 terraform apply -var-file="../environments/dev/aks.tfvars"
 ```
 
-### Deploy Production
+**PowerShell (Windows):**
+```powershell
+cd 3-aks
 
-```bash
-# Initialize
-terraform init -backend-config=environments/prod/backend.tfvars
+# Initialize with remote backend
+terraform init -backend-config="..\environments\dev\aks-backend.tfvars"
 
 # Deploy
-terraform apply -var-file=environments/prod/terraform.tfvars
+terraform apply -var-file="..\environments\dev\aks.tfvars"
+```
+
+### Step 3: Deploy Production
+
+```bash
+cd 3-aks
+
+# Initialize with remote backend
+terraform init -backend-config="../environments/prod/aks-backend.tfvars"
+
+# Deploy
+terraform apply -var-file="../environments/prod/aks.tfvars"
 ```
 
 ## What's Included
