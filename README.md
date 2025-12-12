@@ -52,21 +52,21 @@ terraform apply -var-file=terraform.tfvars
 ```bash
 cd 2-network
 terraform init -backend-config=environments/dev/backend.tfvars
-terraform apply -var-file=environments/dev/terraform.tfvars
+terraform apply -var-file=environments/dev/network.tfvars
 ```
 
 ### Step 4: AKS 
 ```bash
 cd 3-aks
 terraform init -backend-config=environments/dev/backend.tfvars
-terraform apply -var-file=environments/dev/terraform.tfvars
+terraform apply -var-file=environments/dev/aks.tfvars
 ```
 
 ### Step 5: PostgreSQL 
 ```bash
 cd 4-postgresql
 terraform init -backend-config=environments/dev/backend.tfvars
-terraform apply -var-file=environments/dev/terraform.tfvars
+terraform apply -var-file=environments/dev/postgresql.tfvars
 ```
 
 
