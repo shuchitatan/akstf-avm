@@ -152,7 +152,7 @@ This will delete:
 
 ### Issue: Storage account name already exists
 
-Storage account names must be globally unique. If the name is taken, change the environment in your `terraform.tfvars`:
+Storage account names must be globally unique. If the name is taken, change the environment in your `bootstrap.tfvars`:
 
 ```hcl
 environment = "dev2"

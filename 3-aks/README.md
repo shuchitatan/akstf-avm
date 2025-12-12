@@ -87,7 +87,7 @@ terraform apply -var-file="../environments/prod/aks.tfvars"
 
 ## Simple Configuration
 
-Customize via `environments/{env}/terraform.tfvars`:
+Customize via `environments/{env}/aks.tfvars`:
 
 ```hcl
 # Core
