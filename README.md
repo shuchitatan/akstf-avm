@@ -51,7 +51,7 @@ terraform apply -var-file=terraform.tfvars
 ### Step 3: Network 
 ```bash
 cd 2-network
-terraform init -backend-config=environments/dev/backend.tfvars
+terraform init -backend-config=environments/dev/network-backend.tfvars
 terraform apply -var-file=environments/dev/network.tfvars
 ```
 
