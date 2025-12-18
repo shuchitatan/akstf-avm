@@ -3,6 +3,9 @@
 ## Overview
 This repository deploys a production-ready Azure Kubernetes Service (AKS) cluster using a modular, sequential approach with Terraform remote state management.
 
+> **📖 For step-by-step deployment instructions, see each module's README.**  
+> This document provides a visual overview of the deployment flow and architecture.
+
 ---
 
 ## Deployment Flowchart
@@ -85,28 +88,10 @@ flowchart TD
 
 ---
 
-## Detailed Step-by-Step Flow
+## Deployment Phases
 
 ### Phase 1: Bootstrap (0-bootstrap)
 **Purpose**: Create remote state storage for all modules
-
-**Bash:**
-```bash
-cd 0-bootstrap
-export TF_VAR_subscription_id="00000000-0000-0000-0000-000000000000"
-export TF_VAR_environment="dev"
-terraform init
-terraform apply
-```
-
-**PowerShell:**
-```powershell
-cd 0-bootstrap
-$env:TF_VAR_subscription_id = "00000000-0000-0000-0000-000000000000"
-$env:TF_VAR_environment = "dev"
-terraform init
-terraform apply
-```
 
 **Creates**:
 - Resource Group: `rg-terraform-state`
@@ -115,10 +100,11 @@ terraform apply
   - Blob versioning enabled
   - 30-day delete retention
 - Container: `tfstate`
-- Azure AD (Entra ID) authentication configured via `storage_use_azuread = true` in provider
+- Azure AD (Entra ID) authentication configured
 
-**Outputs**:
-- `storage_account_name` → Used by all subsequent modules
+**Outputs**: `storage_account_name` → Used by all subsequent modules
+
+📖 **[Full instructions → 0-bootstrap/README.md](0-bootstrap/README.md)**
 
 ---
 
@@ -127,53 +113,20 @@ terraform apply
 
 > **Skip this phase** if you already have a subscription to use.
 
-```bash
-cd ../1-subscription-vending
-terraform init
-terraform apply -var-file="terraform.tfvars"
-```
-
 **Creates** (if creating new subscription):
 - New Azure Subscription
 - Management Group association
 - Role assignments
 - Budgets
 
-**Or Configures** (if using existing subscription):
-- Apply governance to existing subscription
+**Outputs**: `subscription_id` → Can be used by subsequent modules
 
-**Outputs**:
-- `subscription_id` → Can be used by subsequent modules
+📖 **[Full instructions → 1-subscription-vending/README.md](1-subscription-vending/README.md)**
 
 ---
 
 ### Phase 3: Network Foundation (2-network)
 **Purpose**: Create network infrastructure and prerequisites
-
-```bash
-cd ../2-network
-
-# 1. Create backend config
-cat > ../environments/dev/backend.tfvars <<EOF
-resource_group_name  = "rg-terraform-state"
-storage_account_name = "sttfstatedevXXXXXX"
-container_name       = "tfstate"
-key                  = "network.tfstate"
-use_azuread_auth     = true
-EOF
-
-# 2. Assign storage permissions
-az role assignment create \
-  --role "Storage Blob Data Contributor" \
-  --assignee $(az ad signed-in-user show --query id -o tsv) \
-  --scope "/subscriptions/.../storageAccounts/sttfstatedevXXXXXX"
-
-# 3. Initialize with remote backend
-terraform init -backend-config="../environments/dev/backend.tfvars"
-
-# 4. Deploy network infrastructure
-terraform apply -var-file="../environments/dev/network.tfvars"
-```
 
 **Creates**:
 - Resource Group: `rg-aks-network-dev`
@@ -189,33 +142,16 @@ terraform apply -var-file="../environments/dev/network.tfvars"
 
 **State File**: `tfstate/network.tfstate`
 
-**Outputs** → `network_config`:
-- VNet ID, VNet Name
-- Subnet IDs (aks_system, aks_user, private_endpoints)
-- Private DNS Zone IDs (AKS, ACR)
-- Managed Identity (ID, Principal ID, Client ID)
+**Outputs** → `network_config`: VNet ID, Subnet IDs, DNS Zone IDs, Managed Identity
+
+📖 **[Full instructions → 2-network/README.md](2-network/README.md)**
 
 ---
 
 ### Phase 4: AKS Deployment (3-aks)
 **Purpose**: Deploy production AKS cluster using Azure Verified Modules
 
-```bash
-cd ../3-aks
-
-# 1. Enable required features
-az feature register --namespace Microsoft.Compute --name EncryptionAtHost
-az provider register -n Microsoft.Compute
-
-# 2. Initialize with remote backend
-terraform init -backend-config="../environments/dev/aks-backend.tfvars"
-
-# 3. Deploy AKS
-terraform apply -var-file="../environments/dev/aks.tfvars"
-```
-
-**Reads Remote State**:
-- `network.tfstate` → Gets VNet, subnets, DNS zones, identity
+**Reads Remote State**: `network.tfstate` → Gets VNet, subnets, DNS zones, identity
 
 **Creates**:
 - Resource Group: `rg-aks01-baseline-dev`
@@ -232,32 +168,18 @@ terraform apply -var-file="../environments/dev/aks.tfvars"
 - Role Assignments:
   - Azure Kubernetes Service RBAC Cluster Admin
 
-**State File**: `tfstate/aks.tfstate` (separate from network)
+**State File**: `tfstate/aks.tfstate`
 
-**Outputs**:
-- `cluster_id`, `cluster_name`, `cluster_fqdn`, `cluster_private_fqdn`
-- `kube_config_raw`
-- `oidc_issuer_url`
-- `cluster_identity`, `kubelet_identity`
-- `node_resource_group`
+**Outputs**: `cluster_id`, `cluster_name`, `cluster_fqdn`, `kube_config_raw`, `oidc_issuer_url`
+
+📖 **[Full instructions → 3-aks/README.md](3-aks/README.md)**
 
 ---
 
 ### Phase 5: PostgreSQL Deployment (4-postgresql)
 **Purpose**: Deploy PostgreSQL Flexible Server with VNet integration
 
-```bash
-cd ../4-postgresql
-
-# 1. Initialize with remote backend
-terraform init -backend-config="../environments/dev/postgresql-backend.tfvars"
-
-# 2. Deploy PostgreSQL
-terraform apply -var-file="../environments/dev/postgresql.tfvars"
-```
-
-**Reads Remote State**:
-- `network.tfstate` → Gets VNet ID for Private DNS Zone linking
+**Reads Remote State**: `network.tfstate` → Gets VNet ID for Private DNS Zone linking
 
 **Creates**:
 - Resource Group (configurable via variable)
@@ -271,11 +193,9 @@ terraform apply -var-file="../environments/dev/postgresql.tfvars"
 
 **State File**: `tfstate/postgresql.tfstate`
 
-**Outputs**:
-- `postgresql_id`, `postgresql_name`, `postgresql_fqdn`
-- `administrator_login`, `administrator_password` (sensitive)
-- `connection_string` (template)
-- `private_dns_zone_id`
+**Outputs**: `postgresql_id`, `postgresql_name`, `postgresql_fqdn`, `connection_string`
+
+📖 **[Full instructions → 4-postgresql/README.md](4-postgresql/README.md)**
 
 ---
 

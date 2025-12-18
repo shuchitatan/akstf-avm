@@ -35,39 +35,16 @@ Modular Azure Platform Structure
 
 ## Deployment Order
 
-### Step 1: Bootstrap (One-time per environment)
-```bash
-cd 0-bootstrap
-terraform init
-terraform apply -var="environment=dev"
-```
+> **📖 For detailed step-by-step instructions, see [DEPLOYMENT-FLOW.md](DEPLOYMENT-FLOW.md)**  
+> Each module has its own README with prerequisites, configuration, and commands.
 
-### Step 2: Subscription Vending (Platform Team)
-```bash
-cd 1-subscription-vending
-terraform init
-terraform apply -var-file=terraform.tfvars
-```
-### Step 3: Network 
-```bash
-cd 2-network
-terraform init -backend-config=environments/dev/network-backend.tfvars
-terraform apply -var-file=environments/dev/network.tfvars
-```
-
-### Step 4: AKS 
-```bash
-cd 3-aks
-terraform init -backend-config=environments/dev/aks-backend.tfvars
-terraform apply -var-file=environments/dev/aks.tfvars
-```
-
-### Step 5: PostgreSQL 
-```bash
-cd 4-postgresql
-terraform init -backend-config=environments/dev/postgresql-backend.tfvars
-terraform apply -var-file=environments/dev/postgresql.tfvars
-```
+| Step | Module | Purpose |
+|------|--------|---------|
+| 1 | [0-bootstrap](0-bootstrap/README.md) | Create Terraform state storage (one-time) |
+| 2 | [1-subscription-vending](1-subscription-vending/README.md) | *(Optional)* Create/configure subscriptions |
+| 3 | [2-network](2-network/README.md) | Deploy VNet, subnets, DNS zones, identities |
+| 4 | [3-aks](3-aks/README.md) | Deploy AKS cluster and ACR |
+| 5 | [4-postgresql](4-postgresql/README.md) | Deploy PostgreSQL Flexible Server |
 
 
 ## Why Azure Verified Modules (AVM)?
@@ -155,20 +132,10 @@ Storage Account: sttfstate{env}
 ✅ **Compliance**: Full audit trail
 ✅ **Multi-Cloud Ready**: Consistent patterns
 
-## Quick Start
-
-See detailed guides in each module:
-- [0-bootstrap/README.md](0-bootstrap/README.md)
-- [1-subscription-vending/README.md](1-subscription-vending/README.md)
-- [2-network/README.md](2-network/README.md)
-- [3-aks/README.md](3-aks/README.md)
-- [4-postgresql/README.md](4-postgresql/README.md)
-
 ## Documentation
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Complete deployment guide
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Architecture decisions
-- [ENVIRONMENTS.md](ENVIRONMENTS.md) - Environment strategy
+- [DEPLOYMENT-FLOW.md](DEPLOYMENT-FLOW.md) - Visual deployment flow & architecture diagrams
+- [STRUCTURE.md](STRUCTURE.md) - Repository structure
 
 ## Support
 
